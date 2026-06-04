@@ -69,9 +69,12 @@ def search(query, page=1):
             timeout=20,
         )
     else:
-        proxies = {"http": COLES_PROXY, "https": COLES_PROXY} if COLES_PROXY else None
-        resp = requests.get(COLES_URL, params=params, headers=headers, timeout=20, proxies=proxies)
+        resp = requests.get(COLES_URL, params=params, headers=headers, timeout=20)
     resp.raise_for_status()
+
+    # Check for Incapsula/Cloudflare block page
+    if len(resp.text) < 5000 or "Incapsula" in resp.text or "ewelcome" in resp.text:
+        return []
 
     # Parse __NEXT_DATA__
     parser = NextDataParser()
