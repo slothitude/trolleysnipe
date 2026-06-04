@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import random
 import re
 import time
@@ -10,6 +11,9 @@ from html.parser import HTMLParser
 import requests
 
 from config import COLES_URL, COLES_DELAY, USER_AGENTS
+
+# Optional proxy for Coles (they block datacenter IPs)
+COLES_PROXY = os.environ.get("COLES_PROXY", "")
 
 
 class NextDataParser(HTMLParser):
@@ -55,7 +59,18 @@ def search(query, page=1):
         "Referer": "https://www.coles.com.au/",
     }
 
-    resp = requests.get(COLES_URL, params=params, headers=headers, timeout=20)
+    # Use proxy relay if configured (bypasses Incapsula WAF from datacenter IPs)
+    if COLES_PROXY:
+        # COLES_PROXY is the base URL of the proxy relay (e.g. http://lappy:8099)
+        resp = requests.get(
+            f"{COLES_PROXY}/",
+            params=params,
+            headers={"User-Agent": "TrolleySnipe"},
+            timeout=20,
+        )
+    else:
+        proxies = {"http": COLES_PROXY, "https": COLES_PROXY} if COLES_PROXY else None
+        resp = requests.get(COLES_URL, params=params, headers=headers, timeout=20, proxies=proxies)
     resp.raise_for_status()
 
     # Parse __NEXT_DATA__
