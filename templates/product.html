@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} — TrolleySnipe{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/search?q={{ product.name.split(' ')[0:3]|join(' ') }}" class="text-sm text-gray-500 hover:text-snipe">&larr; Back to search</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Product info -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <div class="flex gap-4">
+                {% if product.image_url %}
+                <div class="w-32 h-32 bg-gray-100 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="max-w-full max-h-full object-contain">
+                </div>
+                {% endif %}
+                <div>
+                    {% if product.brand %}<p class="text-sm text-gray-500">{{ product.brand }}</p>{% endif %}
+                    <h1 class="text-2xl font-bold text-gray-900">{{ product.name }}</h1>
+                    {% if product.size %}<p class="text-sm text-gray-500 mt-1">{{ product.size }}</p>{% endif %}
+                    {% if product.category %}<p class="text-sm text-gray-400 mt-1">{{ product.category }}</p>{% endif %}
+                </div>
+            </div>
+
+            <!-- Price comparison -->
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Coles -->
+                <div class="rounded-xl border-2 {% if comparison.cheaper == 'coles' %}border-coles bg-coles-light{% else %}border-gray-200{% endif %} p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-bold text-coles text-lg">Coles</span>
+                        {% if comparison.cheaper == 'coles' %}<span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-semibold">Cheaper</span>{% endif %}
+                    </div>
+                    {% if coles_price %}
+                    <div class="text-3xl font-bold price-coles">${{ "%.2f"|format(coles_price.price) }}</div>
+                    {% if coles_price.was_price > 0 %}
+                    <div class="text-sm text-gray-400 line-through">${{ "%.2f"|format(coles_price.was_price) }}</div>
+                    {% endif %}
+                    {% if coles_price.unit_label %}
+                    <div class="text-sm text-gray-500 mt-1">{{ coles_price.unit_label }}</div>
+                    {% endif %}
+                    {% if coles_price.is_special %}
+                    <span class="mt-2 inline-block text-xs px-2 py-1 badge-coles rounded">Special</span>
+                    {% endif %}
+                    {% if coles_price.available == 0 %}
+                    <span class="mt-2 inline-block text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">Out of stock</span>
+                    {% endif %}
+                    <a href="https://www.coles.com.au/search/products?q={{ product.name|urlencode }}" target="_blank" rel="noopener"
+                       class="mt-3 block text-center bg-coles text-white rounded-lg py-2 font-semibold hover:bg-coles-dark transition">
+                        View on Coles &rarr;
+                    </a>
+                    {% else %}
+                    <p class="text-gray-400">No price data</p>
+                    {% endif %}
+                </div>
+
+                <!-- Woolworths -->
+                <div class="rounded-xl border-2 {% if comparison.cheaper == 'woolworths' %}border-woolies bg-woolies-light{% else %}border-gray-200{% endif %} p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-bold text-woolies text-lg">Woolworths</span>
+                        {% if comparison.cheaper == 'woolworths' %}<span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-semibold">Cheaper</span>{% endif %}
+                    </div>
+                    {% if ww_price %}
+                    <div class="text-3xl font-bold price-woolies">${{ "%.2f"|format(ww_price.price) }}</div>
+                    {% if ww_price.was_price > 0 %}
+                    <div class="text-sm text-gray-400 line-through">${{ "%.2f"|format(ww_price.was_price) }}</div>
+                    {% endif %}
+                    {% if ww_price.unit_label %}
+                    <div class="text-sm text-gray-500 mt-1">{{ ww_price.unit_label }}</div>
+                    {% endif %}
+                    {% if ww_price.is_special %}
+                    <span class="mt-2 inline-block text-xs px-2 py-1 badge-woolies rounded">Special</span>
+                    {% endif %}
+                    {% if ww_price.available == 0 %}
+                    <span class="mt-2 inline-block text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">Out of stock</span>
+                    {% endif %}
+                    <a href="https://www.woolworths.com.au/shop/search?searchTerm={{ product.name|urlencode }}" target="_blank" rel="noopener"
+                       class="mt-3 block text-center bg-woolies text-white rounded-lg py-2 font-semibold hover:bg-woolies-dark transition">
+                        View on Woolies &rarr;
+                    </a>
+                    {% else %}
+                    <p class="text-gray-400">No price data</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Summary -->
+            {% if comparison.saving > 0 %}
+            <div class="mt-4 bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                <p class="text-green-800 font-semibold">
+                    Save ${{ "%.2f"|format(comparison.saving) }}
+                    by shopping at {{ "Coles" if comparison.cheaper == "coles" else "Woolworths" }}
+                    {% if comparison.saving_pct %}({{ comparison.saving_pct }}% cheaper){% endif %}
+                </p>
+            </div>
+            {% elif comparison.cheaper == 'same' %}
+            <div class="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+                <p class="text-gray-600">Same price at both stores</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Price history sidebar -->
+    <div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+            <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <i data-lucide="trending-up" class="w-4 h-4"></i>
+                Price History (30 days)
+            </h3>
+            {% if history %}
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+                {% for h in history %}
+                <div class="flex items-center justify-between py-1.5 border-b border-gray-100 text-sm">
+                    <div>
+                        {% if h.store == 'coles' %}
+                        <span class="text-xs badge-coles rounded px-1.5 py-0.5">Coles</span>
+                        {% else %}
+                        <span class="text-xs badge-woolies rounded px-1.5 py-0.5">WW</span>
+                        {% endif %}
+                    </div>
+                    <span class="font-semibold {% if h.store == 'coles' %}price-coles{% else %}price-woolies{% endif %}">
+                        ${{ "%.2f"|format(h.price) }}
+                    </span>
+                    <span class="text-xs text-gray-400">{{ h.checked_at[:10] }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-400 text-sm">No price history yet. Prices will build up as we track changes.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

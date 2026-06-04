@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TrolleySnipe{% endblock %} — Never overpay for groceries</title>
+    <meta name="description" content="Compare Coles vs Woolworths prices instantly. Find where every grocery item is cheaper this week.">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        coles: { DEFAULT: '#E00034', light: '#fff0f3', dark: '#b00028' },
+                        woolies: { DEFAULT: '#0075B7', light: '#e8f4fc', dark: '#005a8c' },
+                        snipe: { DEFAULT: '#1a1a2e', light: '#f0f0f5', accent: '#f59e0b' },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <style>
+        .price-coles { color: #E00034; }
+        .price-woolies { color: #0075B7; }
+        .badge-coles { background: #E00034; color: white; }
+        .badge-woolies { background: #0075B7; color: white; }
+        .cheaper-coles { border-left: 4px solid #E00034; }
+        .cheaper-woolies { border-left: 4px solid #0075B7; }
+        .htmx-request .htmx-indicator { display: block; }
+        .htmx-indicator { display: none; }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        .loading-dot { animation: pulse-dot 1.2s infinite; }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Nav -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 font-bold text-xl text-snipe">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
+                </svg>
+                TrolleySnipe
+            </a>
+            <div class="flex items-center gap-4 text-sm">
+                <a href="/deals" class="text-gray-600 hover:text-snipe font-medium">Deals</a>
+                <a href="/" class="text-gray-600 hover:text-snipe font-medium">Categories</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="max-w-5xl mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-200 mt-12 py-8 text-center text-sm text-gray-500">
+        <p>TrolleySnipe — Price data from Coles and Woolworths. Not affiliated with either retailer.</p>
+        <p class="mt-1">Prices may be inaccurate. Always verify at checkout.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

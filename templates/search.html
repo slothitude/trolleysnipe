@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Search{% if query %}: {{ query }}{% endif %}{% endblock %}
+
+{% block content %}
+<!-- Search bar -->
+<form action="/search" method="get" class="mb-6">
+    <div class="relative">
+        <input
+            type="text"
+            name="q"
+            value="{{ query }}"
+            placeholder="Search for any product..."
+            class="w-full px-5 py-3 text-lg rounded-xl border-2 border-gray-200 focus:border-snipe focus:outline-none shadow-sm bg-white"
+            autofocus
+        >
+        <button type="submit" class="absolute right-2 top-2 bg-snipe text-white rounded-lg px-4 py-1.5 font-semibold hover:bg-gray-800 transition">
+            Compare
+        </button>
+    </div>
+</form>
+
+<!-- Results container -->
+<div id="results">
+    {% if error %}
+    <div class="text-center py-12 text-gray-500">
+        <p class="text-lg">{{ error }}</p>
+    </div>
+    {% elif query %}
+    <div class="text-center py-8" id="loading">
+        <div class="flex justify-center gap-1">
+            <div class="w-2 h-2 bg-gray-400 rounded-full loading-dot"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full loading-dot"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full loading-dot"></div>
+        </div>
+        <p class="mt-2 text-gray-500 text-sm">Searching Coles & Woolworths...</p>
+    </div>
+
+    <div id="results-content" hx-get="/api/search?q={{ query }}" hx-trigger="load" hx-target="#results-content" hx-swap="outerHTML">
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Handle HTMX response to render product cards
+document.body.addEventListener('htmx:afterOnLoad', function(event) {
+    const el = document.getElementById('results-content');
+    if (!el || !el.dataset || event.detail.target.id !== 'results-content') return;
+
+    const loading = document.getElementById('loading');
+    if (loading) loading.remove();
+
+    try {
+        const data = JSON.parse(el.innerText);
+        if (data.products && data.products.length > 0) {
+            renderProducts(data.products, data.query);
+        } else {
+            el.innerHTML = '<div class="text-center py-12 text-gray-500"><p class="text-lg">No products found for "' + data.query + '"</p><p class="text-sm mt-1">Try a different search term</p></div>';
+        }
+    } catch(e) {
+        console.error('Parse error:', e);
+    }
+});
+
+function renderProducts(products, query) {
+    const el = document.getElementById('results-content');
+    if (!el) return;
+
+    let html = '<div class="mb-3 text-sm text-gray-500">Found ' + products.length + ' compared products for "' + query + '"</div>';
+    html += '<div class="space-y-3">';
+
+    products.forEach(function(p) {
+        const cp = p.coles || {};
+        const wp = p.woolworths || {};
+        const comp = p.comparison || {};
+
+        let cheaperClass = '';
+        if (comp.cheaper === 'coles') cheaperClass = 'cheaper-coles';
+        else if (comp.cheaper === 'woolworths') cheaperClass = 'cheaper-woolies';
+
+        html += '<a href="/product/' + p.id + '" class="block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition ' + cheaperClass + '">';
+        html += '<div class="p-4 flex gap-4">';
+
+        // Image
+        if (p.image_url) {
+            html += '<div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">';
+            html += '<img src="' + p.image_url + '" alt="" class="max-w-full max-h-full object-contain" loading="lazy">';
+            html += '</div>';
+        }
+
+        // Info
+        html += '<div class="flex-1 min-w-0">';
+        html += '<h3 class="font-semibold text-gray-800 truncate">' + p.name + '</h3>';
+        if (p.brand) html += '<p class="text-xs text-gray-500">' + p.brand + '</p>';
+
+        // Prices
+        html += '<div class="mt-2 flex items-end gap-6">';
+
+        // Coles
+        if (cp.price) {
+            html += '<div>';
+            html += '<span class="text-xs text-coles font-medium">Coles</span>';
+            html += '<div class="text-xl font-bold price-coles">$' + cp.price.toFixed(2) + '</div>';
+            if (cp.was_price > 0) html += '<span class="text-xs text-gray-400 line-through">$' + cp.was_price.toFixed(2) + '</span>';
+            if (cp.unit_label) html += '<div class="text-xs text-gray-500">' + cp.unit_label + '</div>';
+            if (cp.is_special) html += '<span class="text-xs px-1.5 py-0.5 badge-coles rounded">Special</span>';
+            html += '</div>';
+        }
+
+        // Woolworths
+        if (wp.price) {
+            html += '<div>';
+            html += '<span class="text-xs text-woolies font-medium">Woolworths</span>';
+            html += '<div class="text-xl font-bold price-woolies">$' + wp.price.toFixed(2) + '</div>';
+            if (wp.was_price > 0) html += '<span class="text-xs text-gray-400 line-through">$' + wp.was_price.toFixed(2) + '</span>';
+            if (wp.unit_label) html += '<div class="text-xs text-gray-500">' + wp.unit_label + '</div>';
+            if (wp.is_special) html += '<span class="text-xs px-1.5 py-0.5 badge-woolies rounded">Special</span>';
+            html += '</div>';
+        }
+
+        // Saving badge
+        if (comp.saving > 0) {
+            const badgeColor = comp.cheaper === 'coles' ? 'coles' : 'woolies';
+            html += '<div class="ml-auto text-right">';
+            html += '<div class="text-xs text-gray-500">Save</div>';
+            html += '<div class="text-lg font-bold text-green-600">$' + comp.saving.toFixed(2) + '</div>';
+            html += '<div class="text-xs px-2 py-0.5 badge-' + badgeColor + ' rounded">' + (comp.cheaper === 'coles' ? 'Coles' : 'Woolies') + ' cheaper</div>';
+            html += '</div>';
+        }
+
+        html += '</div>'; // prices
+        html += '</div>'; // info
+        html += '</div>'; // flex
+        html += '</a>';
+    });
+
+    html += '</div>';
+    el.innerHTML = html;
+}
+</script>
+{% endblock %}
