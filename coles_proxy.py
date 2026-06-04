@@ -57,4 +57,4 @@ def health():
 
 if __name__ == "__main__":
     print(f"Coles proxy relay running on port 8099 (Python {sys.version})")
-    app.run(host="0.0.0.0", port=8099)
+    app.run(host="0.0.0.0", port=8099, threaded=True)
